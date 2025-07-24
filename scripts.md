@@ -1,0 +1,5 @@
+RUN APP WITHOUT DOCKER (DEVELOPMENT)
+uvicorn main:app --reload
+
+RUN APP WITHOUT DOCKER (PRODUCTION)
+uvicorn main:app
