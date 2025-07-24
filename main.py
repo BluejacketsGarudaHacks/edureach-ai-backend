@@ -1,4 +1,5 @@
 import dotenv
+import asyncio
 import traceback
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
@@ -29,7 +30,10 @@ async def upload_pdf(file: Annotated[UploadFile, File(...)]):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
-def process_pdf_with_langchain(pdf_bytes: bytes) -> str:
+def process_pdf_with_langchain(
+        pdf_bytes: bytes,
+        target_language: str,
+        source_language: str) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(pdf_bytes)
         tmp_path = Path(tmp_file.name)
@@ -51,14 +55,20 @@ def process_pdf_with_langchain(pdf_bytes: bytes) -> str:
         for i in range(0, len(chunks), BATCH_SIZE):
             batch = chunks[i:i + BATCH_SIZE]
             result = conclude_chunks(batch)
-            print("*" * 50)
-            print(result)
             full_result += '\n' + result
         
         with open("result.txt", "w", encoding="utf-8") as f:
             f.write(full_result)
 
-        return full_result
+        translated_result = asyncio.run(
+            translate_with_google(
+                text=full_result,
+                target_language=target_language,
+                source_language=source_language
+            )
+        )
+
+        return translated_result.text
     finally:
         tmp_path.unlink(missing_ok=True)  # Clean up temp file
 
@@ -68,14 +78,19 @@ def conclude_chunks(chunks: List[str]) -> str:
 I have chunks of paragraph from a pdf can you help me conclude it
 
 {formatted_chunks}
+
+please make sure your answer has no additional introduction just the summarized text
     """
+
     return summarizer.answer(prompt)
 
-def translate_with_google(text: str, target_language: str, source_language: str):
+async def translate_with_google(text: str, target_language: str, source_language: str):
     try:
         destination = LANGUAGES[target_language]
         source = SOURCE_LANGUAGES[source_language]
-        translator.translate(text, src=source, dest=destination)
+        result = await translator.translate(text, src=source, dest=destination)
+
+        return result
     except KeyError as key_error:
         print(f'Target: {target_language}, Source: {source_language}')
         traceback.print_exc()
