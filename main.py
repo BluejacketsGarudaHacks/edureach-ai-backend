@@ -1,11 +1,11 @@
 import dotenv
 import asyncio
 import traceback
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import tempfile
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from typing import Annotated
-from langchain.document_loaders import PyPDFLoader
-import tempfile
+from langchain_community.document_loaders import PyPDFLoader
 from pathlib import Path
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from typing import List
@@ -19,18 +19,24 @@ summarizer = Summarizer()
 translator = Translator()
 
 @app.post("/upload-pdf")
-async def upload_pdf(file: Annotated[UploadFile, File(...)]):
+async def upload_pdf(
+    file: Annotated[UploadFile, File(...)],
+    source_lang: Annotated[str, Form(...)],
+    target_lang: Annotated[str, Form(...)]):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
     try:
         contents = await file.read()
-        result_string = process_pdf_with_langchain(contents)
+        result_string = await process_pdf_with_langchain(
+            contents, target_lang, source_lang
+        )
+
         return JSONResponse(content={"message": "PDF processed successfully", "result": result_string})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
-def process_pdf_with_langchain(
+async def process_pdf_with_langchain(
         pdf_bytes: bytes,
         target_language: str,
         source_language: str) -> str:
@@ -60,13 +66,11 @@ def process_pdf_with_langchain(
         with open("result.txt", "w", encoding="utf-8") as f:
             f.write(full_result)
 
-        translated_result = asyncio.run(
-            translate_with_google(
+        translated_result = await translate_with_google(
                 text=full_result,
                 target_language=target_language,
                 source_language=source_language
             )
-        )
 
         return translated_result.text
     finally:
