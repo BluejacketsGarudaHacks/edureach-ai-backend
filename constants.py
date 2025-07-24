@@ -6,6 +6,7 @@ LANGUAGES = {
     "batak simalungun": "bts",
     "batak toba": "bbc",
     "minang": "min",
+    'indonesia': 'id'
 }
 
 BATCH_SIZE=3
