@@ -2,6 +2,7 @@ import dotenv
 import asyncio
 import traceback
 import tempfile
+import requests
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from typing import Annotated
@@ -36,6 +37,32 @@ async def upload_pdf(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
+@app.get('/get-volunteer-information/{volunteer_id}')
+async def get_volunteer_information(volunteer_id: str):
+    feedbacks = get_volunteer_feedbacks(volunteer_id)
+    formatted_feedbacks = "\n".join([f'- {feedback['message']}' for feedback in feedbacks])
+
+    prompt = f'''
+Saya mempunyai data saran untuk sebuah pengajar, bantukan saya membuat ringkasannya
+
+{formatted_feedbacks}
+
+Tolong berikan jawaban yang tidak bertele - tele
+    '''
+
+    return summarizer.answer(prompt)
+
+def get_volunteer_feedbacks(volunteer_id: str):
+    url = f"http://localhost:6969/api/feedback/volunteer/{volunteer_id}"  # Change to your actual URL and port
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad status codes
+        feedbacks = response.json()
+        return feedbacks
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return None
+
 async def process_pdf_with_langchain(
         pdf_bytes: bytes,
         target_language: str,
@@ -60,11 +87,14 @@ async def process_pdf_with_langchain(
         full_result = ''
         for i in range(0, len(chunks), BATCH_SIZE):
             batch = chunks[i:i + BATCH_SIZE]
-            result = conclude_chunks(batch)
+            result = conclude_chunks(batch  )
             full_result += '\n' + result
         
         with open("result.txt", "w", encoding="utf-8") as f:
             f.write(full_result)
+
+        # ! RUNNING WITHOUT TRANSLATION TO PREVENT RATE LIMIT FROM GOOGLE TRANSLATE
+        return full_result
 
         translated_result = await translate_with_google(
                 text=full_result,
