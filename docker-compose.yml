@@ -1,0 +1,10 @@
+services:
+  edureach_ai:
+    build: .
+    container_name: edureach_ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
