@@ -1,0 +1,10 @@
+fastapi==0.116.1
+googletrans==4.0.2
+langchain==0.3.26
+protobuf==6.31.1
+python-dotenv==1.1.1
+langchain-community==0.3.21
+google-genai==1.10.0
+python-multipart==0.0.20
+uvicorn==0.34.0
+pypdf==5.4.0
