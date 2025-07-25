@@ -94,7 +94,7 @@ async def process_pdf_with_langchain(
             f.write(full_result)
 
         # ! RUNNING WITHOUT TRANSLATION TO PREVENT RATE LIMIT FROM GOOGLE TRANSLATE
-        return full_result
+        # return full_result
 
         translated_result = await translate_with_google(
                 text=full_result,
