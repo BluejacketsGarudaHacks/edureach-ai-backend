@@ -93,8 +93,8 @@ async def process_pdf_with_langchain(
         with open("result.txt", "w", encoding="utf-8") as f:
             f.write(full_result)
 
-        # ! RUNNING WITHOUT TRANSLATION TO PREVENT RATE LIMIT FROM GOOGLE TRANSLATE
-        return full_result
+        # # ! RUNNING WITHOUT TRANSLATION TO PREVENT RATE LIMIT FROM GOOGLE TRANSLATE
+        # return full_result
 
         translated_result = await translate_with_google(
                 text=full_result,
@@ -103,6 +103,9 @@ async def process_pdf_with_langchain(
             )
 
         return translated_result.text
+    except Exception as e:
+        print(f"Error processing pdf {e}")
+        raise e
     finally:
         tmp_path.unlink(missing_ok=True)  # Clean up temp file
 
